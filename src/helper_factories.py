@@ -4,12 +4,13 @@ import torch
 from functools import partial
 import os
 import json
+from glob import glob
+from tqdm import tqdm
 
 sys.path.append('./')
 sys.path.append('../')
 from src.losses import *
 from src.models.unet_models import *
-from src.helper_factories import get_unet
 from src.types.tensor_tiles import BrightfieldTile, FluorescenceTile
 from src.types.brightfield_slide import BrightFieldSlide
 from src.types.fluorescence_slide import FluorescenceSlide
@@ -67,7 +68,7 @@ def get_unet(base_arch:str, size=tuple([256,256]), n_out=3, weights_path=None, d
     base = get_base_arch(base_arch)
     meta = model_meta.get(base, _default_meta)
     pretrained = weights_path is None
-    body = create_body(arch, 3, pretrained , meta['cut']) # in_size=3 for pretrained imagenet weights - doesn't affect model
+    body = create_body(base, 3, pretrained , meta['cut']) # in_size=3 for pretrained imagenet weights - doesn't affect model
     unet_model = models.unet.DynamicUnet(body, n_out, size)
     
     # load trained weights
@@ -139,6 +140,7 @@ def get_inference_func(model_dir):
     inference_func
     
     Arguments:
+        zoom            (int): magnification. one of 20,40,60
         predict_files  (list): List of tiff file paths to predict. Each complete slide has 7 brightfield tiffs. Either predict_files or predict_dir must be provided.
         predict_dir     (str): Directory containing *C04.tif files to predict. Each complete slide has 7 brightfield tiffs. Either predict_files or predict_dir must be provided.
         use_perceptual_loss_model (bool): Default=True. If False, select only-mse-trained model if available
@@ -149,44 +151,32 @@ def get_inference_func(model_dir):
     
     def inference_func(
         model_dir,
+        zoom:int,
         predict_files=None, 
         predict_dir=None,
         output_dir=None, 
         use_perceptual_loss_model=True):
         
-        # read zoom from filename
-        def read_microscope_zoom(fn):
-            suffix = str(os.path.basename(fn)).split('_')[-1]
-            if 'F008' in suffix:
-                return 20
-            if 'F010' in suffix:
-                return 40
-            if 'F012' in suffix:
-                return 60
-        
-        assert predict_files is None and predict_dir is None, 'Please provide either predict_files or predict_dir'
-        assert predict_files is not None and predict_dir is not None, 'Please provide only one. predict_files or predict_dir'
+        assert not(predict_files is None and predict_dir is None), 'Please provide either predict_files or predict_dir'
+        assert not(predict_files is not None and predict_dir is not None), 'Please provide only one. predict_files or predict_dir'
     
         # load prediction input files
         if predict_dir is not None:
-            input_files = glob(predict_dir + '/*C04.tif')
+            input_files = glob.glob(predict_dir + '/*C04.tif')
         else:
             input_files = predict_files
         assert len(input_files) % 7 == 0, 'length of input file list is not divisible by 7'
         
-        # read the zoom from file names and check that it is consistent for each file
         # check that the input files are brightfield files
-        zoom = read_microscope_zoom(input_files[0])
         for input_fn in input_files:
-            assert zoom == read_microscope_zoom(input_fn), f'input file {input_fn} has different zoom than the first file'
             assert str(input_fn).endswith('C04.tif'), f'input file {input_fn} does not end with C04.tif'
 
         # load model paths and configs for the zoom
         model_paths, model_config_paths = [], []
-        for sub_dir in [_dir for _dir in os.listdir(model_dir) if os.path.isfile(_dir)]
+        for sub_dir in [_dir for _dir in os.listdir(model_dir) if os.path.isdir(os.path.join(model_dir, _dir))]:
             contents = os.listdir(os.path.join(model_dir, sub_dir))
             if f'zoom_{zoom}' in contents:
-                dir_files = os.path.listdir(os.path.join(model_dir, sub_dir, f'zoom_{zoom}'))
+                dir_files = os.listdir(os.path.join(model_dir, sub_dir, f'zoom_{zoom}'))
                 if 'model_mse_trained.pth' in dir_files and not use_perceptual_loss_model:
                     pth_file = os.path.join(model_dir, sub_dir, f'zoom_{zoom}', 'model_mse_trained.pth')
                 else:
@@ -200,7 +190,7 @@ def get_inference_func(model_dir):
         
         unique_slide_names = np.unique(np.array([(os.path.basename(fn).split('.')[0][:-9]) for fn in input_files]))
         fluorescence_slides_list = []
-        for unique_slide in unique_slide_names:
+        for unique_slide in tqdm(unique_slide_names):
             slide_input_files = [fn for fn in input_files if unique_slide in fn]
             assert len(slide_input_files) == 7, f'slide has {len(slide_input_files)} tif files instead of 7.'
 
@@ -210,8 +200,8 @@ def get_inference_func(model_dir):
 
             for model_path, model_config_path in zip(model_paths, model_config_paths):
                 # read config
-                with open(FLAGS.config) as json_file:
-                    config = json.load(model_config_path)
+                with open(model_config_path) as json_file:
+                    config = json.load(json_file)
 
                 tile_sz = config['tile_sz']
                 tile_overlap = config['tile_overlap']
@@ -234,12 +224,12 @@ def get_inference_func(model_dir):
 
                 for tile in brightfield_tiles:
                     br_img = BrightfieldTile.from_numpy(tile.img, stats=STATS)
-                    br_batch = tensor(br_img).reshape(1, *tensor(br_img).shape)
-                    pred_fs = unet_model(br_batch)[0].detach()
+                    br_batch = tensor(br_img).reshape(1, *tensor(br_img).shape).cuda()
+                    pred_fs = unet_model(br_batch)[0].detach().cpu()
                     np_fs_img = FluorescenceTile(pred_fs).to_numpy(stats=STATS)
 
                     # create a SlideTile
-                    fs_tile = tile.copy()
+                    fs_tile = tile
                     fs_tile.img = np_fs_img
                     fluorescence_tiles.append(fs_tile)
 

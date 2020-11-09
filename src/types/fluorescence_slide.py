@@ -19,9 +19,9 @@ class FluorescenceSlide(SlideImage):
     @classmethod
     def fromFluorescenceSlides(cls, slides:list, weights:list=None, **kwargs):
         if len(slides) == 1:
-            return cls(avg, **kwargs)
+            return cls(slides[0].img, **kwargs)
         
-        stack = np.stack(slides)
+        stack = np.stack([slide.img for slide in slides])
         avg = np.average(stack, axis=0)
     
         return cls(avg, **kwargs)
@@ -36,7 +36,7 @@ class FluorescenceSlide(SlideImage):
         
         for chan in range(3):
             chan_img = self.img[:,:,chan].astype(np.uint16)
-            file_suffix = f'A0{chan}Z01C0{chan}.tif'
-            fn = os.path.join(out_dir, self.name + sile_suffix)
+            file_suffix = f'A0{chan+1}Z01C0{chan+1}.tif'
+            fn = os.path.join(out_dir, self.name + file_suffix)
             cv2.imwrite(fn, chan_img)
         

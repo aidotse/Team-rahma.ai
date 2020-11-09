@@ -20,7 +20,7 @@ class BrightfieldTile(Tensor):
     
     @classmethod
     def from_numpy(cls, np_img, stats:DataStats):
-        return cls(_numpy_normalize_brightfield(np_img. stats))
+        return cls(_numpy_normalize_brightfield(np_img, stats))
     
     def show(self, ctx=None, **kwargs): 
         img = self

@@ -19,7 +19,7 @@ from src.types.fluorescence_slide import FluorescenceSlide
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('config', './configs/train_config.json', 'Config file that tells where to save and in with tile size')
-flags.DEFINE_string('input_images_dir', './input/images_for_preview/', 'Images directory that has folders "20x images" e.g.')
+flags.DEFINE_string('input_images_dir', '/data/', 'Images directory that has folders "20x images" e.g.')
 
 def main(unused_argv):
 
