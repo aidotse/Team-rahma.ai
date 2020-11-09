@@ -1,0 +1,11 @@
+{
+    "tile_data_dir" : "./input/tile_set/",
+    "stats_path" : "./configs/data_statistics.json",
+    "perceptual_loss_20_path" : "./models/vgg16_loss_zoom_20.pth",
+    "perceptual_loss_40_path" : "./models/vgg16_loss_zoom_40.pth",
+    "perceptual_loss_60_path" : "./models/vgg16_loss_zoom_60.pth",
+    "tile_sz" : 256,
+    "tile_overlap" : 64,
+    "num_folds" : 5,
+    "test_fold_index" : 4
+}
