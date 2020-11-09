@@ -26,7 +26,7 @@ from src.losses import *
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('config', './configs/train_config.json', 'Config file includes dataset specific parameters')
-flags.DEFINE_integer('bs', 4, 'batch size')
+flags.DEFINE_integer('bs', 8, 'batch size')
 flags.DEFINE_list('val_folds', None, 'comma-separated list of validation indices to run e.g."0,1,2", if None (default), all folds except test fold are used for val')
 flags.DEFINE_integer('head_epochs', 1, 'number of epochs to train the head')
 flags.DEFINE_float('head_lr', 0.001, 'head training learning rate')
