@@ -86,9 +86,7 @@ def convert_images_to_array(image_dir):
     df_row = pd.DataFrame(np.array([[0,0,0,0,0]]), columns = ['path', 'pos', 'F', 'C', 'Z']) 
 
     # get all files in image_dir
-    for x in os.walk(image_dir):
-        file_list = glob.glob(x[0] + '/AssayPlate*.tif')
-
+    file_list = glob.glob(image_dir + '/AssayPlate*.tif')
     # get metadata from each file name and store in df
     for file in file_list:
         filename = os.path.split(file)[1]
@@ -123,9 +121,9 @@ def convert_images_to_array(image_dir):
                 y_c03.append(im)
 
     # convert to numpy array
-    y_c01 = np.array(y_c01)
-    y_c02 = np.array(y_c02)
-    y_c03 = np.array(y_c03)
+    y_c01 = np.array(y_c01).astype('float32')
+    y_c02 = np.array(y_c02).astype('float32')
+    y_c03 = np.array(y_c03).astype('float32')
 
     return y_c01, y_c02, y_c03
 

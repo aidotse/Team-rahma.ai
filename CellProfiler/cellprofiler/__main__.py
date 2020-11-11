@@ -816,7 +816,7 @@ def run_pipeline_headless(options, args):
     if initial_measurements is not None:
         pipeline_text = initial_measurements.get_experiment_measurement(M_PIPELINE)
 
-        pipeline_text = pipeline_text
+        pipeline_text = pipeline_text.decode() if isinstance(pipeline_text, bytes) else pipeline_text
 
         pipeline.load(io.StringIO(pipeline_text))
 

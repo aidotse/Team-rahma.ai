@@ -1,4 +1,4 @@
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import numpy as np
 import os
 from glob import glob
@@ -27,7 +27,7 @@ flags.DEFINE_list('predict_files', None, 'comma-separated list of tiff file path
 flags.DEFINE_string('predict_dir', './tmp/test_slides/input_60_256/', 'Directory containing tiff files to predict. Each complete slide has 7 brightfield tiffs. Either predict_files or predict_dir must be provided.')
 flags.DEFINE_string('output_dir', './tmp/test_slides/predicted_60_256/', 'Directory where predicted fluorescence tiffs are saved to')
 
-def predict(zoom, model_dir, predict_files=None, predict_dir=None, output_dir=None, use_perceptual_loss_model=True):
+def predict(zoom, model_dir, predict_files=None, predict_dir=None, output_dir=None, use_perceptual_loss_model=True, disable_tqdm=False):
     """
     Predict brightfield tiff file list or folder with a given model_dir
     and save fluorescence tiff predictions to output_dir. Zoom level must be provided
@@ -46,7 +46,8 @@ def predict(zoom, model_dir, predict_files=None, predict_dir=None, output_dir=No
         predict_files=predict_files,
         predict_dir=predict_dir,
         output_dir=output_dir,
-        use_perceptual_loss_model=use_perceptual_loss_model
+        use_perceptual_loss_model=use_perceptual_loss_model,
+        disable_tqdm = disable_tqdm
     )
         
     for fluorescence_slides in fluorescence_slides_list:

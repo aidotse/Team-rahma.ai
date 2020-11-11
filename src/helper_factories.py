@@ -5,7 +5,7 @@ from functools import partial
 import os
 import json
 from glob import glob
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 sys.path.append('./')
 sys.path.append('../')
@@ -155,7 +155,9 @@ def get_inference_func(model_dir):
         predict_files=None, 
         predict_dir=None,
         output_dir=None, 
-        use_perceptual_loss_model=True):
+        use_perceptual_loss_model=True,
+        disable_tqdm=False
+    ):
         
         assert not(predict_files is None and predict_dir is None), 'Please provide either predict_files or predict_dir'
         assert not(predict_files is not None and predict_dir is not None), 'Please provide only one. predict_files or predict_dir'
@@ -190,7 +192,7 @@ def get_inference_func(model_dir):
         
         unique_slide_names = np.unique(np.array([(os.path.basename(fn).split('.')[0][:-9]) for fn in input_files]))
         fluorescence_slides_list = []
-        for unique_slide in tqdm(unique_slide_names):
+        for unique_slide in tqdm(unique_slide_names, disable=disable_tqdm):
             slide_input_files = [fn for fn in input_files if unique_slide in fn]
             assert len(slide_input_files) == 7, f'slide has {len(slide_input_files)} tif files instead of 7.'
 

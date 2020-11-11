@@ -50,8 +50,8 @@ def main(unused_argv):
         test_slide_names = list(df.slide_name.values)
         
 
-        input_dir = os.path.join(OUT_DIR, f'input_{size_text}_{tile_sz}')
-        target_dir = os.path.join(OUT_DIR, f'target_{size_text}_{tile_sz}')
+        input_dir = os.path.join(OUT_DIR, f'{size_text}x_input')
+        target_dir = os.path.join(OUT_DIR, f'{size_text}x_target')
 
         if not os.path.isdir(OUT_DIR):
             os.mkdir(OUT_DIR)
