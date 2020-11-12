@@ -80,7 +80,10 @@ class FluorescenceTile(Tensor):
             
         t = t.permute(1,2,0)
         im = (t * tensor(stats.FLUORESCENCE_STD)) + tensor(stats.FLUORESCENCE_MEAN)
-        np_im = im.cpu().numpy().astype(np.uint16)
+        np_im = im.cpu().numpy()
+        np_im = np.clip(np_im, 0, 65535)
+        np_im = np_im.astype(np.uint16)   
+        
         return np_im
     
     def show(self, ctx=None, **kwargs):
