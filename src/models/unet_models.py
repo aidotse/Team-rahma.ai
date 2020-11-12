@@ -3,6 +3,20 @@ from fastai.vision import models
 import torch
 from typing import Tuple
 
+def resnet34_7chan(pretrained=True):
+    resnet = models.resnet34(pretrained=pretrained)
+    conv1 = nn.Conv2d(7, 64, kernel_size=7, stride=2, padding=3, bias=False)
+    if pretrained:
+        w = resnet.conv1.weight
+        conv1.weight = nn.Parameter(torch.cat((w,
+               0.5*(w[:,:1,:,:]+w[:,2:,:,:]),
+               0.5*(w[:,:1,:,:]+w[:,2:,:,:]),
+               0.5*(w[:,:1,:,:]+w[:,2:,:,:]),
+               0.5*(w[:,:1,:,:]+w[:,2:,:,:])
+              ),dim=1))
+    resnet.conv1 = conv1
+    return resnet
+
 def resnet50_7chan(pretrained=True):
     resnet = models.resnet50(pretrained=pretrained)
     conv1 = nn.Conv2d(7, 64, kernel_size=7, stride=2, padding=3, bias=False)

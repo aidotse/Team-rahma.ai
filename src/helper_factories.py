@@ -109,6 +109,8 @@ def get_base_arch(base_arch:str):
         base = resnet50_7chan
     elif base_arch == 'resnest50':
         base = resnest50_7chan
+    elif base_arch == 'resnet34':
+        base = resnet34_7chan
     else:
         raise Exception('not implemented', f'{base_arch} base_arch not implemented')
     return base
