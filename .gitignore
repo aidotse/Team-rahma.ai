@@ -2,6 +2,7 @@
 input/
 output/
 tmp/
+.nfs*
 
 # Python environment and vscode user files
 vscode/
