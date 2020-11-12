@@ -1,38 +1,28 @@
-import os
+import os, sys
 import shutil
 import json
 from pathlib import Path
 import pandas as pd
 from tqdm.auto import tqdm
 from multiprocessing import Pool
-
+import subprocess
 from absl import app
 from absl import flags
 
 sys.path.append('./')
 sys.path.append('../')
-from inference import *
+from inference import predict
 from eval_metrics import *
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('model_dir', './models/20201109-193651_resnet50', 'Directory containing subfolders for models and each subdir includes zoom_20, zoom_40, zoom_60 dirs')
-flags.DEFINE_string('output_dir', FLAGS.model_dir, 'Directory where evaluation results will be saved')
-
-# Data args
-PIPELINE_DIR = "../cellprofiler_pipelines/"
-SLIDESET_ROOT = '../tmp/test_slides/'
+# constants
+PIPELINE_DIR = "./cellprofiler_pipelines/"
+SLIDESET_ROOT = './tmp/test_slides/'
 ZOOM_LEVELS = ["20", "40", "60"]
+USE_PERCEPTUAL_LOSS = True
 
-class HiddenPrints:
-    def __enter__(self):
-        self._original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout.close()
-        sys.stdout = self._original_stdout
-
+# resolve data
 all_tif_paths = [str(fn) for fn in Path(f"{SLIDESET_ROOT}").rglob("*.tif")]
 all_tif_paths = sorted(all_tif_paths)
 dataset_df = pd.DataFrame({"tif_path": all_tif_paths})
@@ -42,18 +32,28 @@ dataset_df['slide_no'] = dataset_df.slide_id.apply(lambda x: x[-4] if x[-1]=="4"
 dataset_df['slide_id'] = dataset_df.slide_id.apply(lambda x: x[:-4]+"X"+x[-3:] if x[-1]=="4" else 
                                                    x[:-7]+"X"+x[-6:-4] +"X"+x[-3:-1]+"X")
 dataset_df['slide_id'] = dataset_df.slide_id.apply(lambda x: x[:-7]+"X"+x[-6:-1]+"X")
-dataset_df['zoom'] = dataset_df.tif_path.apply(lambda x: x.split("/")[3][:2])
+dataset_df['zoom'] = dataset_df.tif_path.apply(lambda x: x.split("/")[2][:2])
 dataset_df['is_target'] = dataset_df.tif_path.apply(lambda x: "target" in x)
 dataset_df = dataset_df.sort_values(["zoom", "slide_no", ])
-      
-    
+
+
+class HiddenPrints:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
+        
+
 def run_inference(model_dir:str):
     
     for zoom in tqdm(ZOOM_LEVELS, desc="[inference] zoom level"):
     
         zoom_df = dataset_df.copy()[(dataset_df.zoom==zoom)]
         slide_ids = zoom_df.slide_id.unique()
-
+        
         # Generate paths to store the predictions
         # NOTICE! All existing data in the output folders will be deleted
         pred_output_dir = f"../tmp/{zoom}x_preds/"
@@ -90,10 +90,11 @@ def run_inference(model_dir:str):
             for tgt_fn in target_files:
                 shutil.copyfile(tgt_fn, f"{target_output_dir}/{Path(tgt_fn).name}")
 
+def _run_shell_command(cmd:str):
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    p.communicate() 
+        
 def run_cellprofiler_evaluation():
-    
-    def _run_shell_command(cmd:str):
-        !$cmd
         
     with HiddenPrints():
         for zoom in tqdm(ZOOM_LEVELS, desc="[cellprofiler] zoom level"):
@@ -112,15 +113,14 @@ def run_cellprofiler_evaluation():
                      f"-o {os.path.abspath(target_output_dir)}/csv/ "\
                      f"-i {os.path.abspath(target_output_dir)}"
 
-            if __name__ == '__main__':
-                with Pool(processes=2) as pool:
-                    tasks = [cp_cmd_preds,cp_cmd_targets]
-                    for _ in tqdm(pool.imap_unordered(_run_shell_command, tasks), 
-                                  total=len(tasks),
-                                  desc=f"[cellprofiler] multiprocessing"):
-                        continue
+            with Pool(processes=2) as pool:
+                tasks = [cp_cmd_preds,cp_cmd_targets]
+                for _ in tqdm(pool.imap_unordered(_run_shell_command, tasks), 
+                              total=len(tasks),
+                              desc=f"[cellprofiler] multiprocessing"):
+                    continue
 
-def compute_eval_score(output_dir:str):
+def compute_eval_score(model_dir:str):
     
     eval_data = []
     for zoom in tqdm(ZOOM_LEVELS, desc="[evaluation] zoom level"):
@@ -161,16 +161,14 @@ def compute_eval_score(output_dir:str):
         np.sum([e['data']['n_slides'] for e in eval_data['eval_data']])
     )
     eval_data['total_score'] = mae_tot
-
-    with open(os.path.join(output_dir, 'eval.json'), 'w') as fp:
-        json.dump(eval_data, fp)
+    pd.DataFrame.from_dict(eval_data).to_json(os.path.join(model_dir, 'eval.json'))
     
 def main(unused_argv):
     # if this file is imported and not ran from shell, stop here
     if FLAGS.model_dir is not None:
-        run_inference(model_dir)
+        run_inference(FLAGS.model_dir)
         run_cellprofiler_evaluation()
-        compute_eval_score(FLAGS.output_dir)
+        compute_eval_score(FLAGS.model_dir)
     
 if __name__ == '__main__':
     FLAGS(sys.argv)
