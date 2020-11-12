@@ -10,23 +10,73 @@ from src.types.tensor_tiles import BrightfieldTile, FluorescenceTile
 
 class TileMSELoss(torch.nn.Module): 
     """ MSE loss for custom tile classes """
-    def __init__(self, reduction: str = 'mean') -> None:
+    def __init__(self,
+                 reduction: str = 'mean',
+                 denormalized:bool=False,
+                 denorm_mean:float=None,
+                 denorm_std:float=None
+                ) -> None:
         super(TileMSELoss, self).__init__()
         self.reduction = reduction
         self.__name__ = 'MSE'
+        if denormalized and denorm_std is not None and denorm_mean is not None:
+            self.denormalized = denormalized
+            self.denorm_mean, self.denorm_std = tensor(np.array(denorm_mean)), tensor(np.array(denorm_std))
+        else:
+            self.denormalized = False
 
     def forward(self, input, target) -> Tensor:
-        return F.mse_loss(TensorImage(input), TensorImage(target), reduction=self.reduction)
+        if self.denormalized:
+            # to channel last format
+            _input = input.permute(0,2,3,1)
+            _target = target.permute(0,2,3,1)
+            
+            # denormalize
+            _input = (_input * self.denorm_std.to(_input.device)) + self.denorm_mean.to(_input.device)
+            _target = (_target * self.denorm_std.to(_target.device)) + self.denorm_mean.to(_target.device)
+            
+            # to channel first format
+            _input = _input.permute(0,3,1,2)
+            _target = _target.permute(0,3,1,2)
+            
+            return F.mse_loss(TensorImage(_input), TensorImage(_target), reduction=self.reduction)
+        else:
+            return F.mse_loss(TensorImage(input), TensorImage(target), reduction=self.reduction)
 
 class TileL1Loss(torch.nn.Module):
     """ L1 loss for custom tile classes """
-    def __init__(self, reduction: str = 'mean') -> None:
+    def __init__(self, 
+                 reduction: str = 'mean',
+                 denormalized:bool=False,
+                 denorm_mean:float=None,
+                 denorm_std:float=None
+                ) -> None:
         super(TileL1Loss, self).__init__()
         self.reduction = reduction
         self.__name__ = 'MAE'
+        if denormalized and denorm_std is not None and denorm_mean is not None:
+            self.denormalized = denormalized
+            self.denorm_mean, self.denorm_std = tensor(np.array(denorm_mean)), tensor(np.array(denorm_std))
+        else:
+            self.denormalized = False
 
     def forward(self, input, target) -> Tensor:
-        return F.l1_loss(TensorImage(input), TensorImage(target), reduction=self.reduction)
+        if self.denormalized:
+            # to channel last format
+            _input = input.permute(0,2,3,1)
+            _target = target.permute(0,2,3,1)
+            
+            # denormalize
+            _input = (_input * self.denorm_std.to(_input.device)) + self.denorm_mean.to(_input.device)
+            _target = (_target * self.denorm_std.to(_target.device)) + self.denorm_mean.to(_target.device)
+            
+            # to channel first format
+            _input = _input.permute(0,3,1,2)
+            _target = _target.permute(0,3,1,2)
+            
+            return F.l1_loss(TensorImage(_input), TensorImage(_target), reduction=self.reduction)
+        else:
+            return F.l1_loss(TensorImage(input), TensorImage(target), reduction=self.reduction)
     
 class Chan_MSE(torch.nn.Module):
     """ Single channel MSE metric for tile classes """

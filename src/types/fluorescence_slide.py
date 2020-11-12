@@ -36,7 +36,7 @@ class FluorescenceSlide(SlideImage):
         
         for chan in range(3):
             chan_img = self.img[:,:,chan]
-            chan_img = np.clip(chan_img, 0, chan_img.max())
+            chan_img = np.clip(chan_img, 0, 65535)
             chan_img = chan_img.astype(np.uint16)
             file_suffix = f'A0{chan+1}Z01C0{chan+1}.tif'
             fn = os.path.join(out_dir, self.name + file_suffix)

@@ -17,7 +17,15 @@ from src.types.fluorescence_slide import FluorescenceSlide
 from src.types.parent_slide import SlideTile, SlideImage
 from src.stats_reader import DataStats
 
-def get_learner(base_arch:str, dls, pretrained_path=None, loss_method='mse', perceptual_pth=None):
+def get_learner(
+        base_arch:str, 
+        dls, 
+        pretrained_path=None, 
+        loss_method='mse', 
+        perceptual_pth=None, 
+        target_mean=None,
+        target_std=None,
+    ):
     """
     Returns a learner loaded with specified model and weights.
     
@@ -27,10 +35,12 @@ def get_learner(base_arch:str, dls, pretrained_path=None, loss_method='mse', per
         pretrained_path (str): if not None (default), weights are loaded from this .pth path
         loss_method     (str): option for loss, one of mse, l1, perceptual, perceptual_trained
         perceptual_pth  (str): if loss_method is perceptual_trained, this should point to vgg loss model's .pth file
+        target_mean    (list): denormalization mean for losses
+        target_std     (list): denormalization std for losses
     """
     
     base = get_base_arch(base_arch)
-    loss = get_loss(loss_method, perceptual_pth)
+    loss = get_loss(loss_method, perceptual_pth, target_mean, target_std)
     
     learn = unet_learner(
         dls, 
@@ -103,21 +113,23 @@ def get_base_arch(base_arch:str):
         raise Exception('not implemented', f'{base_arch} base_arch not implemented')
     return base
 
-def get_loss(loss_method:str, perceptual_pth=None):
+def get_loss(loss_method:str, perceptual_pth=None, target_mean=None, target_std=None,):
     """ 
     Returns the corresponding loss instance for a given loss method identifier 
     
     Arguments:
         loss_method    (str): option for loss, one of mse, l1, perceptual, perceptual_trained
         perceptual_pth (str): weights path for trained perceptual loss. This must be provided if loss_method=perceptual_trained
+        target_mean   (list): denormalization mean for losses
+        target_std    (list): denormalization std for losses
         
     Returns:
         loss (loss callable): loss instance that can be used as loss_func
     """
     if loss_method == 'mse':
-        loss = TileMSELoss()
+        loss = TileMSELoss(denormalized=(target_mean is not None), denorm_mean=target_mean, denorm_std=target_std)
     elif loss_method == 'perceptual_trained':
-        loss = TileL1Loss()
+        loss = TileL1Loss(denormalized=(target_mean is not None), denorm_mean=target_mean, denorm_std=target_std)
     elif loss_method == 'perceptual':
         loss = VGGPerceptualLoss()
     elif loss_method == 'perceptual_trained':

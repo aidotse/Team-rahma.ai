@@ -81,8 +81,9 @@ class FluorescenceTile(Tensor):
         t = t.permute(1,2,0)
         im = (t * tensor(stats.FLUORESCENCE_STD)) + tensor(stats.FLUORESCENCE_MEAN)
         np_im = im.cpu().numpy()
-        np_im = np.clip(np_im, 0, 65535)
-        np_im = np_im.astype(np.uint16)   
+        np_im = np.round(np_im) #rounding to preserve the accuracy
+        np_im = np.clip(np_im, 0, np.iinfo(np.uint16).max) #clipping to prevent modulo errors
+        np_im = np_im.astype(np.uint16) #casting to uint16
         
         return np_im
     

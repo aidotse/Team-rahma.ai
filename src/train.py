@@ -149,7 +149,9 @@ def train_single_fold(root_dir, val_fold, train_folds, zoom, config):
     learn = get_learner(
         base_arch=FLAGS.base_arch,
         dls=dls,
-        loss_method='mse'
+        loss_method='mse',
+        target_mean=STATS.FLUORESCENCE_MEAN,
+        target_std=STATS.FLUORESCENCE_STD,
     )
     
     # load perceptual loss for finetuning phase
