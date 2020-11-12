@@ -21,7 +21,7 @@ from src.types.fluorescence_slide import FluorescenceSlide
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('model_dir', './models/20201108-212542_resnet50', 'Directory containing subfolders for models and each subdir includes zoom_20, zoom_40, zoom_60 dirs')
+flags.DEFINE_string('model_dir', './models/20201109-193651_resnet50', 'Directory containing subfolders for models and each subdir includes zoom_20, zoom_40, zoom_60 dirs')
 flags.DEFINE_integer('zoom', 60, 'magnification integer. One of 20, 40, 60')
 flags.DEFINE_list('predict_files', None, 'comma-separated list of tiff file paths to predict. Each complete slide has 7 brightfield tiffs.')
 flags.DEFINE_string('predict_dir', './tmp/test_slides/input_60_256/', 'Directory containing tiff files to predict. Each complete slide has 7 brightfield tiffs. Either predict_files or predict_dir must be provided.')
