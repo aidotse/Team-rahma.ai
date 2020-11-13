@@ -11,10 +11,12 @@ from absl import flags
 
 sys.path.append('./')
 sys.path.append('../')
-from inference import predict
-from eval_metrics import *
+from src.predict_utils import predict
+from src.eval_metrics import *
 
 FLAGS = flags.FLAGS
+flags.DEFINE_string('model_dir', './models/20201109-193651_resnet50', 'Directory containing subfolders for models and each subdir includes zoom_20, zoom_40, zoom_60 dirs')
+#flags.DEFINE_string('output_dir', FLAGS.model_dir, 'Output')
 
 # constants
 PIPELINE_DIR = "./cellprofiler_pipelines/"
@@ -93,7 +95,8 @@ def run_inference(model_dir:str):
 def _run_shell_command(cmd:str):
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     p.communicate() 
-        
+    #subprocess.Popen(cmd, shell=True)#, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.read()
+    
 def run_cellprofiler_evaluation():
         
     with HiddenPrints():

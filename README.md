@@ -8,27 +8,13 @@ AstraZeneca and AI Sweden are challenging the AI community to solve the problem 
 
 ## Installation
 
-
-1. Create conda python environment for managing cuda version.
-```bash
-conda create --name cuda102 python=3.7
-conda activate cuda102
-conda install cudatoolkit=10.2  && conda install cudnn=7.6
-```
-
-2. Install python virtualenv and pip requirements
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip3 install -r requirements.txt
-```
-
-Or
-
 **BUILD DOCKER**
 
-**START DOCKER**
+```bash
+cd Docker && sh build.sh
+```
 
+## Training TODO!
 
 ## Get dataset statistics
 
@@ -63,11 +49,24 @@ or
 
 2. As a docker script
 ```sh
-docker exec {DOCKER_IMAGE} python3 inference.py \
-    -model_dir {MODEL_DIR} \
-    -zoom {ZOOM_LEVEL} \
-    -predict_dir {PREDICT_DIR} \
-    -output_dir {OUTPUT_DIR}
+CODE_DIR=$(pwd)
+MODEL_DIR=$(pwd)/tmp/20201112-225630_resnet34
+INPUT_DIR=$(pwd)/tmp/test_slides/20x_input
+OUTPUT_DIR=$(pwd)/tmp/test_output/
+ZOOM=20
+DOCKER_IMAGE=raehmae_docker_image:latest
+
+docker run \
+  -v $CODE_DIR:/main/:ro \
+  -v $MODEL_DIR:/model_dir/:ro \
+  -v $INPUT_DIR:/input_dir/:ro \
+  -v $OUTPUT_DIR:/output_dir/ \
+  $DOCKER_IMAGE \
+  python3 src/inference.py \
+    --model_dir=/model_dir \
+    --zoom=$ZOOM \
+    --predict_dir=/input_dir \
+    --output_dir=/output_dir
 ```
 
 where

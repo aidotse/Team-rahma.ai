@@ -3,6 +3,7 @@ input/
 output/
 tmp/
 .nfs*
+hs*.log
 
 # Python environment and vscode user files
 vscode/
@@ -12,6 +13,7 @@ venv/
 
 *.pth
 *.out
+*.log
 configs/data_statistics.json
 
 # Byte-compiled / optimized / DLL files
