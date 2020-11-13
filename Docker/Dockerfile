@@ -41,12 +41,12 @@ RUN apt-get install -y \
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH=$PATH:/home/ubuntu/.local/bin
 
-RUN python3.8 -m pip uninstall enum34
+RUN python3.8 -m pip uninstall enum34 --yes
 RUN python3.8 -m pip install wheel
 RUN python3.8 -m  pip install \
   -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04  \
   wxPython==4.1.0
-COPY /CellProfiler /tmp/
+COPY CellProfiler /tmp/CellProfiler
 RUN python3.8 -m pip install /tmp/CellProfiler/.
 # <<< CellProfiler 
 
