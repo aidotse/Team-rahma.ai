@@ -173,7 +173,7 @@ def get_inference_func(model_dir):
         predict_dir=None,
         output_dir=None, 
         use_perceptual_loss_model=True,
-        disable_tqdm=False,
+        disable_prints=False,
         bs=16
     ):
         
@@ -232,7 +232,7 @@ def get_inference_func(model_dir):
         
         
         inference_start_time = time.time()
-        for unique_slide in tqdm(unique_slide_names, desc='[inference] predicting slides', disable=disable_tqdm):
+        for unique_slide in tqdm(unique_slide_names, desc='[inference] predicting slides', disable=disable_prints):
             slide_input_files = [fn for fn in input_files if unique_slide in fn]
             assert len(slide_input_files) == 7, f'slide has {len(slide_input_files)} tif files instead of 7.'
 
@@ -285,16 +285,18 @@ def get_inference_func(model_dir):
             fluorescence_slides_list.append(fluorescence_slides)
         
         inference_end_time = time.time()
-        
-        print("")
-        print("~ "*30)
-        inference_time = inference_end_time-inference_start_time
-        print(f"number of slides processed {len(fluorescence_slides_list)}")
-        print(f"inference finished in {inference_time} seconds")
-        print(f"average time spend on one slide {inference_time/len(fluorescence_slides_list)} seconds)")
-        print("~ "*30)
-        print("")
-        
+        if not disable_prints:
+            sys.stdout.flush()
+            print("")
+            print("~ "*30)
+            inference_time = inference_end_time-inference_start_time
+            print(f"Number of slides processed {len(unique_slide_names)}")
+            print(f"Inference finished in {inference_time} seconds")
+            print(f"Average inference time for one slide {inference_time/len(unique_slide_names)} seconds)")
+            print("~ "*30)
+            print("")
+            sys.stdout.flush()
+            
         return fluorescence_slides_list
 
         

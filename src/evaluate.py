@@ -39,17 +39,6 @@ dataset_df['zoom'] = dataset_df.tif_path.apply(lambda x: x.split("/")[2][:2])
 dataset_df['is_target'] = dataset_df.tif_path.apply(lambda x: "target" in x)
 dataset_df = dataset_df.sort_values(["zoom", "slide_no", ])
 
-
-class HiddenPrints:
-    def __enter__(self):
-        self._original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout.close()
-        sys.stdout = self._original_stdout
-        
-
 def run_inference(model_dir:str):
     
     for zoom in tqdm(ZOOM_LEVELS, desc="[inference] zoom level"):
@@ -88,7 +77,7 @@ def run_inference(model_dir:str):
                     predict_files=input_files,
                     output_dir=pred_output_dir,
                     use_perceptual_loss_model=USE_PERCEPTUAL_LOSS,
-                    disable_tqdm=True
+                    disable_prints=True
                    )
             for tgt_fn in target_files:
                 shutil.copyfile(tgt_fn, f"{target_output_dir}/{Path(tgt_fn).name}")
@@ -96,7 +85,6 @@ def run_inference(model_dir:str):
 def _run_shell_command(cmd:str):
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     p.communicate() 
-    #subprocess.Popen(cmd, shell=True)#, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.read()
     
 def run_cellprofiler_evaluation():
         
@@ -146,7 +134,8 @@ def compute_eval_score(output_dir:str):
         print(f"Total MAE {mae}")
         print(f"Number of slides {len(dummy)}")
         print("")
-
+        sys.stdout.flush()
+        
         eval_data.append(
             {'zoom':zoom,
              'data':
@@ -175,12 +164,14 @@ def compute_eval_score(output_dir:str):
     print("~ "*30)
     print("")
     print(eval_data)
-
+    sys.stdout.flush()
+    
 def main(unused_argv):
     # if this file is imported and not ran from shell, stop here
+    print("")
+    print("")
+    sys.stdout.flush()
     if FLAGS.model_dir is not None:
-        print("")
-        print("")
         run_inference(FLAGS.model_dir)
         run_cellprofiler_evaluation()
         if FLAGS.output_dir is not None:

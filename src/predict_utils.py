@@ -16,7 +16,7 @@ sys.path.append('../')
 from src.helper_factories import get_inference_func
 from src.types.fluorescence_slide import FluorescenceSlide
 
-def predict(zoom, model_dir, predict_files=None, predict_dir=None, output_dir=None, use_perceptual_loss_model=True, disable_tqdm=False):
+def predict(zoom, model_dir, predict_files=None, predict_dir=None, output_dir=None, use_perceptual_loss_model=True, disable_prints=False):
     """
     Predict brightfield tiff file list or folder with a given model_dir
     and save fluorescence tiff predictions to output_dir. Zoom level must be provided
@@ -36,7 +36,7 @@ def predict(zoom, model_dir, predict_files=None, predict_dir=None, output_dir=No
         predict_dir=predict_dir,
         output_dir=output_dir,
         use_perceptual_loss_model=use_perceptual_loss_model,
-        disable_tqdm = disable_tqdm
+        disable_prints=disable_prints
     )
         
     for fluorescence_slides in fluorescence_slides_list:

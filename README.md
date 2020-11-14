@@ -99,6 +99,27 @@ docker run \
     --output_dir=/output_dir
 ```
 
+**Notice:** The inference script will print the inference time spend working the inference on images in `input_dir` that includes:
+
++ splitting the brightfield images into tiles
+
++ inference with the ensemble
+
++ stitching the output tiles into fluerecence images
+
+but exludes the time spend in:
+
+- loading ensemble weights into memory.
+
+The inference print looks like this:
+
+```sh
+~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+Number of slides processed 10
+Inference finished in 23.512750148773193 seconds
+Average inference time for one slide 2.3512750148773193 seconds)
+~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+```
 
 ## Evaluate
 
