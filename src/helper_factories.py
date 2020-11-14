@@ -6,6 +6,7 @@ import os
 import json
 from glob import glob
 from tqdm.auto import tqdm
+import time
 
 sys.path.append('./')
 sys.path.append('../')
@@ -63,7 +64,7 @@ def get_unet(base_arch:str, size=tuple([256,256]), n_out=3, weights_path=None, d
     Optionally, provide path to model weights.
     
     Arguments:
-        base_arch    (str): identifier for the base architecture. one of 'resnet50', 'resnest50' 
+        base_arch    (str): identifier for the base architecture. one of 'resnet50', 'resnet34', 'resnest50, 'efficientnetb5' 
         size   (tuple:int): input size tuple, default=(256,256)
         n_out        (int): default=3, output channels
         weights_path (str): state dict *.pth file path, default=None
@@ -111,6 +112,8 @@ def get_base_arch(base_arch:str):
         base = resnest50_7chan
     elif base_arch == 'resnet34':
         base = resnet34_7chan
+    elif base_arch == 'efficientnetb5':
+        base = efficientnetb5_7chan
     else:
         raise Exception('not implemented', f'{base_arch} base_arch not implemented')
     return base
@@ -170,7 +173,8 @@ def get_inference_func(model_dir):
         predict_dir=None,
         output_dir=None, 
         use_perceptual_loss_model=True,
-        disable_tqdm=False
+        disable_tqdm=False,
+        bs=16
     ):
         
         assert not(predict_files is None and predict_dir is None), 'Please provide either predict_files or predict_dir'
@@ -206,7 +210,29 @@ def get_inference_func(model_dir):
         
         unique_slide_names = np.unique(np.array([(os.path.basename(fn).split('.')[0][:-9]) for fn in input_files]))
         fluorescence_slides_list = []
-        for unique_slide in tqdm(unique_slide_names, disable=disable_tqdm):
+        
+        unet_models = []
+        for model_path, model_config_path in zip(model_paths, model_config_paths):
+            # read config
+            with open(model_config_path) as json_file:
+                config = json.load(json_file)
+
+            tile_sz = config['tile_sz']
+
+            # construct unet with weights
+            unet_model = get_unet(
+                base_arch=config['base_arch'],
+                size=tuple([tile_sz, tile_sz]),
+                n_out=3,
+                weights_path=model_path,
+                device='cuda'
+            )
+            unet_model.eval()
+            unet_models.append(unet_model)
+        
+        
+        inference_start_time = time.time()
+        for unique_slide in tqdm(unique_slide_names, desc='[inference] predicting slides', disable=disable_tqdm):
             slide_input_files = [fn for fn in input_files if unique_slide in fn]
             assert len(slide_input_files) == 7, f'slide has {len(slide_input_files)} tif files instead of 7.'
 
@@ -214,7 +240,7 @@ def get_inference_func(model_dir):
             brightfield_slide = BrightFieldSlide.fromFiles(fns=slide_input_files, name=os.path.basename(unique_slide))
             fluorescence_slides = []
 
-            for model_path, model_config_path in zip(model_paths, model_config_paths):
+            for unet_model, model_config_path in zip(unet_models, model_config_paths):
                 # read config
                 with open(model_config_path) as json_file:
                     config = json.load(json_file)
@@ -225,19 +251,23 @@ def get_inference_func(model_dir):
 
                 # split to tiles with tile size and overlap
                 brightfield_tiles = brightfield_slide.getTiles(tile_sz, tile_overlap)
-
-                # construct unet with weights
-                unet_model = get_unet(
-                    base_arch=config['base_arch'],
-                    size=tuple([tile_sz, tile_sz]),
-                    n_out=3,
-                    weights_path=model_path,
-                    device='cuda'
-                )
-                unet_model.eval()
-
                 fluorescence_tiles = []
+                
+                # batched inference
+                
+                #for tile_index in range(0, len(brightfield_tiles), bs):
+                #    tile_batch = brightfield_tiles[tile_index:min(tile_index + bs, len(brightfield_tiles) - 1)]
+                #    br_img_batch = torch.stack([BrightfieldTile.from_numpy(tile.img, stats=STATS) for tile in tile_batch])
+                #    br_batch = tensor(br_img_batch).reshape(-1, *tensor(br_img_batch).shape[-3:]).cuda()
+                #    pred_fs_batch = unet_model(br_batch).detach().cpu()
+                #    pred_img_batch = [FluorescenceTile(pred_fs).to_numpy(stats=STATS) for pred_fs in pred_fs_batch]
 
+                #    # create a SlideTile
+                #    fs_tile_batch = tile_batch
+                #    for fs_tile, pred_img in zip(fs_tile_batch, pred_img_batch):
+                #        fs_tile.img = pred_img
+                #    fluorescence_tiles += fs_tile_batch
+                
                 for tile in brightfield_tiles:
                     br_img = BrightfieldTile.from_numpy(tile.img, stats=STATS)
                     br_batch = tensor(br_img).reshape(1, *tensor(br_img).shape).cuda()
@@ -253,7 +283,20 @@ def get_inference_func(model_dir):
                 fluorescence_slides.append(fluorescence_slide)
                 
             fluorescence_slides_list.append(fluorescence_slides)
+        
+        inference_end_time = time.time()
+        
+        print("")
+        print("~ "*30)
+        inference_time = inference_end_time-inference_start_time
+        print(f"number of slides processed {len(fluorescence_slides_list)}")
+        print(f"inference finished in {inference_time} seconds")
+        print(f"average time spend on one slide {inference_time/len(fluorescence_slides_list)} seconds)")
+        print("~ "*30)
+        print("")
+        
         return fluorescence_slides_list
+
         
     return partial(inference_func, model_dir)
     

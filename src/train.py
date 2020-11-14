@@ -183,12 +183,6 @@ def train_single_fold(root_dir, val_fold, train_folds, zoom, config):
     # plot visualization
     preds = learn.model(eyeball_xs).detach()
     plot_eyeball_batch(eyeball_ys, preds, STATS, save_fn = os.path.join(LOGGER.logdir, '2_unfreezed_trained_vis.png'))
-
-    # save the mse trained model (only weights)
-    torch.save(
-        learn.model.state_dict(),
-        os.path.join(LOGGER.logdir, 'model_mse_trained.pth')
-        )
     
     learn.loss_func = perceptual_loss
     learn.fit_flat_cos(

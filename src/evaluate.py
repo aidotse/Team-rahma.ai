@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import pandas as pd
 from tqdm.auto import tqdm
-from multiprocessing import Pool
+import multiprocessing as mp
 import subprocess
 from absl import app
 from absl import flags
@@ -16,13 +16,14 @@ from src.eval_metrics import *
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('model_dir', './models/20201109-193651_resnet50', 'Directory containing subfolders for models and each subdir includes zoom_20, zoom_40, zoom_60 dirs')
-#flags.DEFINE_string('output_dir', FLAGS.model_dir, 'Output')
+flags.DEFINE_string('output_dir', None, 'Output directory to save the eval results')
 
 # constants
 PIPELINE_DIR = "./cellprofiler_pipelines/"
 SLIDESET_ROOT = './tmp/test_slides/'
 ZOOM_LEVELS = ["20", "40", "60"]
 USE_PERCEPTUAL_LOSS = True
+TMP_FOLDER = "/tmp"
 
 # resolve data
 all_tif_paths = [str(fn) for fn in Path(f"{SLIDESET_ROOT}").rglob("*.tif")]
@@ -58,8 +59,8 @@ def run_inference(model_dir:str):
         
         # Generate paths to store the predictions
         # NOTICE! All existing data in the output folders will be deleted
-        pred_output_dir = f"../tmp/{zoom}x_preds/"
-        target_output_dir = f"../tmp/{zoom}x_targets/"
+        pred_output_dir = f"{TMP_FOLDER}/{zoom}x_preds/"
+        target_output_dir = f"{TMP_FOLDER}/{zoom}x_targets/"
         if os.path.isdir(pred_output_dir):
             shutil.rmtree(pred_output_dir)
         if os.path.isdir(target_output_dir):
@@ -99,37 +100,38 @@ def _run_shell_command(cmd:str):
     
 def run_cellprofiler_evaluation():
         
-    with HiddenPrints():
-        for zoom in tqdm(ZOOM_LEVELS, desc="[cellprofiler] zoom level"):
+    tasks = []
+    for zoom in ZOOM_LEVELS:
 
-            pred_output_dir = f"../tmp/{zoom}x_preds/"
-            target_output_dir = f"../tmp/{zoom}x_targets/"
+        pred_output_dir = f"{TMP_FOLDER}/{zoom}x_preds/"
+        target_output_dir = f"{TMP_FOLDER}/{zoom}x_targets/"
 
-            cp_cmd_preds = f"cellprofiler -c -r "\
-                     f"-p {os.path.abspath(PIPELINE_DIR)}/Adipocyte_pipeline_{zoom}x.cppipe "\
-                     f"-o {os.path.abspath(pred_output_dir)}/csv/ "\
-                     f"-i {os.path.abspath(pred_output_dir)}"
+        cp_cmd_preds = f"cellprofiler -c -r "\
+                 f"-p {os.path.abspath(PIPELINE_DIR)}/Adipocyte_pipeline_{zoom}x.cppipe "\
+                 f"-o {os.path.abspath(pred_output_dir)}/csv/ "\
+                 f"-i {os.path.abspath(pred_output_dir)}"
+        tasks.append(cp_cmd_preds)
+        
+        cp_cmd_targets = f"cellprofiler -c -r "\
+                 f"-p {os.path.abspath(PIPELINE_DIR)}/Adipocyte_pipeline_{zoom}x.cppipe "\
+                 f"-o {os.path.abspath(target_output_dir)}/csv/ "\
+                 f"-i {os.path.abspath(target_output_dir)}"
+        tasks.append(cp_cmd_targets)
+        
+    n_cores = min(mp.cpu_count(), len(tasks))
+    with mp.Pool(processes=n_cores) as pool:
+        for _ in tqdm(pool.imap_unordered(_run_shell_command, tasks), 
+                      total=len(tasks),
+                      desc=f"[cellprofiler] multiprocessing with {n_cores} cores"):
+            continue
 
-
-            cp_cmd_targets = f"cellprofiler -c -r "\
-                     f"-p {os.path.abspath(PIPELINE_DIR)}/Adipocyte_pipeline_{zoom}x.cppipe "\
-                     f"-o {os.path.abspath(target_output_dir)}/csv/ "\
-                     f"-i {os.path.abspath(target_output_dir)}"
-
-            with Pool(processes=2) as pool:
-                tasks = [cp_cmd_preds,cp_cmd_targets]
-                for _ in tqdm(pool.imap_unordered(_run_shell_command, tasks), 
-                              total=len(tasks),
-                              desc=f"[cellprofiler] multiprocessing"):
-                    continue
-
-def compute_eval_score(model_dir:str):
+def compute_eval_score(output_dir:str):
     
     eval_data = []
     for zoom in tqdm(ZOOM_LEVELS, desc="[evaluation] zoom level"):
 
-        pred_output_dir = f"../tmp/{zoom}x_preds/"
-        target_output_dir = f"../tmp/{zoom}x_targets/"
+        pred_output_dir = f"{TMP_FOLDER}/{zoom}x_preds/"
+        target_output_dir = f"{TMP_FOLDER}/{zoom}x_targets/"
         pred_file = f"{os.path.abspath(pred_output_dir)}/csv/Adipocytes_Image.csv"
         targ_file = f"{os.path.abspath(target_output_dir)}/csv/Adipocytes_Image.csv"
 
@@ -156,7 +158,7 @@ def compute_eval_score(model_dir:str):
              }})
     
     eval_data = {
-        'model': model_dir,
+        'model': FLAGS.model_dir,
         'eval_data': eval_data
     }
     mae_tot = np.divide(
@@ -164,14 +166,27 @@ def compute_eval_score(model_dir:str):
         np.sum([e['data']['n_slides'] for e in eval_data['eval_data']])
     )
     eval_data['total_score'] = mae_tot
-    pd.DataFrame.from_dict(eval_data).to_json(os.path.join(model_dir, 'eval.json'))
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    pd.DataFrame.from_dict(eval_data).to_json(os.path.join(output_dir, 'eval.json'))
     
+    print("")
+    print("~ "*30)
+    print(f"Final evaluation score {mae_tot}")
+    print("~ "*30)
+    print("")
+    print(eval_data)
+
 def main(unused_argv):
     # if this file is imported and not ran from shell, stop here
     if FLAGS.model_dir is not None:
+        print("")
+        print("")
         run_inference(FLAGS.model_dir)
         run_cellprofiler_evaluation()
-        compute_eval_score(FLAGS.model_dir)
+        if FLAGS.output_dir is not None:
+            compute_eval_score(FLAGS.output_dir)
+        else:
+            compute_eval_score(FLAGS.model_dir)
     
 if __name__ == '__main__':
     FLAGS(sys.argv)
