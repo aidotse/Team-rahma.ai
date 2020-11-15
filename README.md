@@ -146,7 +146,7 @@ Inference parameters explained:
 
 + stitching the output tiles into fluerecence images
 
-but exludes the time spend in:
+but excludes the time spend in:
 
 - loading ensemble weights into memory.
 
@@ -154,10 +154,10 @@ The inference print looks like this:
 
 ```
 ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-Number of slides processed 10
-Inference finished in 23.512750148773193 seconds
-Average inference time for one slide 2.3512750148773193 seconds)
-~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+Number of slides processed 9
+Inference finished in 225.7180757522583 seconds
+Average inference time for one slide 25.079786194695366 seconds
+~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 ```
 
 ## Evaluate

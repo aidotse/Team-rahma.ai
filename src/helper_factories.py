@@ -288,7 +288,7 @@ def get_inference_func(model_dir):
             inference_time = inference_end_time-inference_start_time
             print(f"Number of slides processed {len(unique_slide_names)}")
             print(f"Inference finished in {inference_time} seconds")
-            print(f"Average inference time for one slide {inference_time/len(unique_slide_names)} seconds)")
+            print(f"Average inference time for one slide {inference_time/len(unique_slide_names)} seconds")
             print("~ "*30)
             print("")
             sys.stdout.flush()
