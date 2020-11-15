@@ -134,7 +134,6 @@ def compute_eval_score(output_dir:str):
         print(f"Total MAE {mae}")
         print(f"Number of slides {len(dummy)}")
         print("")
-        sys.stdout.flush()
         
         eval_data.append(
             {'zoom':zoom,

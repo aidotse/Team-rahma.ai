@@ -160,7 +160,6 @@ def get_inference_func(model_dir):
         zoom            (int): magnification. one of 20,40,60
         predict_files  (list): List of tiff file paths to predict. Each complete slide has 7 brightfield tiffs. Either predict_files or predict_dir must be provided.
         predict_dir     (str): Directory containing *C04.tif files to predict. Each complete slide has 7 brightfield tiffs. Either predict_files or predict_dir must be provided.
-        use_perceptual_loss_model (bool): Default=True. If False, select only-mse-trained model if available
         
     Returns:
         FluorescenceSlides ([[FluorescenceSlide]]): Nested list of FluorescenceSlides. Outer list has n-slides items and inner list has n-models items.
@@ -172,9 +171,9 @@ def get_inference_func(model_dir):
         predict_files=None, 
         predict_dir=None,
         output_dir=None, 
-        use_perceptual_loss_model=True,
         disable_prints=False,
-        bs=16
+        bs=16,
+        **kwargs
     ):
         
         assert not(predict_files is None and predict_dir is None), 'Please provide either predict_files or predict_dir'
@@ -197,10 +196,7 @@ def get_inference_func(model_dir):
             contents = os.listdir(os.path.join(model_dir, sub_dir))
             if f'zoom_{zoom}' in contents:
                 dir_files = os.listdir(os.path.join(model_dir, sub_dir, f'zoom_{zoom}'))
-                if 'model_mse_trained.pth' in dir_files and not use_perceptual_loss_model:
-                    pth_file = os.path.join(model_dir, sub_dir, f'zoom_{zoom}', 'model_mse_trained.pth')
-                else:
-                    pth_file = os.path.join(model_dir, sub_dir, f'zoom_{zoom}', 'model.pth')
+                pth_file = os.path.join(model_dir, sub_dir, f'zoom_{zoom}', 'model.pth')
                 config_file = os.path.join(model_dir, sub_dir, f'zoom_{zoom}', 'model_config.json')
                 if os.path.isfile(pth_file) and os.path.isfile(config_file):
                     model_paths.append(pth_file)
