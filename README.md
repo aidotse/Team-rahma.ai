@@ -63,10 +63,30 @@ nvidia-docker run \
 
 ## Inference
 
+First download `final_ensemble.zip` and unzip it inside `models` directory in the codebase. The contents inside `models` directory are:
+
+```
+models
+|__ final_ensemble
+    |__ _resnet50_fold_0
+    |   |__ zoom_20
+    |   |   |__ model.pth
+    |   |   |__ model_config.json
+    |   |   |__ ...
+    |   |
+    |   |__ zoom_40
+    |   |
+    |   |__ zoom_60
+    |__ _resnet50_fold_2
+    |   |__ ...
+    |__ _resnet50_fold_3
+        |__ ...
+```
+
 **In the repository root** (or in Docker container `/main/`), run
 
 ```sh
-MODEL_DIR=$(pwd)/models/20201109-193651_resnet50
+MODEL_DIR=$(pwd)/models/final_ensemble
 INPUT_DIR=$(pwd)/tmp/test_slides/20x_input
 OUTPUT_DIR=$(pwd)/tmp/test_output/
 ZOOM_LEVEL=20
@@ -79,12 +99,12 @@ or
 **As a docker script (preferrable)**
 
 ```sh
-CODE_DIR=$(pwd) #<-default
-MODEL_DIR=$(pwd)/tmp/20201109-193651_resnet50 #<-default
-INPUT_DIR=$(pwd)/tmp/test_slides/20x_input #<-change this
-OUTPUT_DIR=$(pwd)/tmp/test_output/ #<-change this
-ZOOM_LEVEL=20 #<-change this
-DOCKER_IMAGE=raehmae_docker_image:latest #<-default
+CODE_DIR=$(pwd) 
+MODEL_DIR=$(pwd)/models/final_ensemble
+INPUT_DIR=$(pwd)/tmp/test_slides/20x_input
+OUTPUT_DIR=$(pwd)/tmp/test_output/
+ZOOM_LEVEL=20
+DOCKER_IMAGE=raehmae_docker_image:latest
 
 docker run \
   -v $CODE_DIR:/main/:ro \
@@ -97,7 +117,26 @@ docker run \
     --zoom=$ZOOM_LEVEL \
     --predict_dir=/input_dir \
     --output_dir=/output_dir
+
 ```
+
+---
+
+Inference parameters explained:
+
+*`CODE_DIR:` path to the codebase root
+
+*`MODEL_DIR:` path to the checkpoints to use
+
+*`INPUT_DIR:` path to the directory with all the input `*.tif` files to be inferred inside
+
+*`OUTPUT_DIR:` path to the directory to generate the `*.tif` output files into
+
+*`ZOOM_LEVEL:` one of 20, 40 or 60
+
+*`DOCKER_IMAGE:` docker image name
+
+---
 
 **Notice:** The inference script will print the inference time spend working the inference on images in `input_dir` that includes:
 
@@ -133,8 +172,8 @@ After this, the models can evaluated by
 
 **In the repository root** (or in Docker container `/main/`), run
 ```sh
-MODEL_DIR=$(pwd)/tmp/20201109-193651_resnet50
-OUTPUT_DIR=$(pwd)/tmp/20201109-193651_resnet50
+MODEL_DIR=$(pwd)/models/final_ensemble
+OUTPUT_DIR=$(pwd)/models/final_ensemble
 
 python ./src/evaluate.py \
     --model_dir=$MODEL_DIR \
@@ -147,8 +186,8 @@ or
 **As a docker script (preferrable)**
 ```sh
 CODE_DIR=$(pwd)
-MODEL_DIR=$(pwd)/models/20201109-193651_resnet50
-OUTPUT_DIR=$(pwd)/models/20201109-193651_resnet50
+MODEL_DIR=$(pwd)/models/final_ensemble
+OUTPUT_DIR=$(pwd)/models/final_ensemble
 DOCKER_IMAGE=raehmae_docker_image:latest
 
 docker run \
@@ -161,4 +200,9 @@ docker run \
     --output_dir=/output_dir
 ```
 
-**Notice:** The internal evaluation uses [`CellProfiler`](https://github.com/CellProfiler/CellProfiler). Instead of simply cloning CP from the official repository, we had to fix some issues with the official code, and therefore needed to add CP into the codebase, in folder `CellProfiler/`. CP has their own non-MIT license, however, CP is only needed for the evaluation and the folder `CellProfiler/` can be simply deleted from the codebase. 
+---
+
+**Important notice:** The internal evaluation uses [`CellProfiler`](https://github.com/CellProfiler/CellProfiler). Instead of simply cloning CP from the official repository, we had to fix some issues with the official code, and therefore needed to add CP into the codebase, in folder `CellProfiler/`. CP has their own non-MIT license, however, CP is only needed for the evaluation and the folder `CellProfiler/` can be simply deleted from the codebase. 
+
+---
+

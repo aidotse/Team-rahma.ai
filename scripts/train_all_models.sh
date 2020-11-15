@@ -2,7 +2,7 @@
 python ./src/train.py \
     --config=./configs/train_config.json \
     --bs=12 \
-    --val_folds=0,1,2,3 \
+    --val_folds=0,2,3 \
     --head_epochs=1 \
     --head_lr=0.001 \
     --unfreezed_mse_epochs=15 \
