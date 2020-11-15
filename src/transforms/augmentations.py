@@ -71,8 +71,8 @@ class PairAugmentations:
             img = self._flip_h(img)
         if AugmentationOptions.flip_v in augs:
             img = self._flip_v(img)
-        #if AugmentationOptions.contrast in augs:
-        #    img = self._contrast(img)
+        if AugmentationOptions.contrast in augs:
+            img = self._contrast(img)
         return BrightfieldTile(img)
         
     def _fluorescence_transform(self, img:TensorImage, augs:list):

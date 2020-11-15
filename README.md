@@ -2,7 +2,7 @@
 
 AstraZeneca and AI Sweden are challenging the AI community to solve the problem of labeling cell images without requiring toxic preprocessing of cell cultures. 
 
-**Rähmä.ai solution**
+**Team rähmä.ai solution**
 
 --------------------------------------
 
@@ -113,7 +113,7 @@ but exludes the time spend in:
 
 The inference print looks like this:
 
-```sh
+```
 ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 Number of slides processed 10
 Inference finished in 23.512750148773193 seconds
@@ -160,3 +160,5 @@ docker run \
     --model_dir=/model_dir \
     --output_dir=/output_dir
 ```
+
+**Notice:** The internal evaluation uses [`CellProfiler`](https://github.com/CellProfiler/CellProfiler). Instead of simply cloning CP from the official repository, we had to fix some issues with the official code, and therefore needed to add CP into the codebase, in folder `CellProfiler/`. CP has their own non-MIT license, however, CP is only needed for the evaluation and the folder `CellProfiler/` can be simply deleted from the codebase. 
